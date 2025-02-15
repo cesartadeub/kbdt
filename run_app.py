@@ -1,6 +1,5 @@
 print('\n-----------------------')
 import numpy as np
-import matplotlib.pyplot as plt
 import streamlit as st
 import requests
 
@@ -17,8 +16,8 @@ df["Time"] = time  # Adicionar ao DataFrame
 
 # Interface do Streamlit
 st.title("""
-Knowledge-based digital twin wind turbine sensor faults diagnosis
-_*Cesar Tadeu NM Branco* v0.25.02.3_
+Wind turbine knowledge-based digital twin sensor faults diagnosis
+*_Cesar Tadeu NM Branco v0.25.02.3_*
 """)
 # Version index organization:
 # 1) 0 only for me, 1 for first approach with specialist 
