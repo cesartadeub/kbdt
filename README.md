@@ -1,1 +1,3 @@
-KBDT - Knowledge-based digital twins for wind turbine sensor faults diagnosis
+plotly == 5.22.0
+pandas == 2.2.2
+streamlit == 1.32.0
