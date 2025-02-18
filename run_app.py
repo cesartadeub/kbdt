@@ -8,7 +8,7 @@ from plotly.subplots import make_subplots
 
 from SensorData import SensorData as sd
 
-# ======== Aqui devia ser uma entrada do usuário: Devem ser vários condicionais.
+
 file_path = 'https://raw.githubusercontent.com/cesartadeub/kbdt/refs/heads/main/set1.csv'
 sampling_frequency = 10  # Example frequency
 
@@ -20,15 +20,15 @@ df["Time"] = time # Adicionar ao DataFrame
 
 # Interface do Streamlit
 st.title("""
-Wind turbine knowledge-based digital twin sensor faults diagnosis
-*_Cesar Tadeu NM Branco v0.25.02.3_*
-""")
+         Wind turbine knowledge-based digital twin sensor faults diagnosis
+         *_Cesar Tadeu NM Branco v0.25.02.3_*
+         """)
 # Version index organization:
 # 1) 0 only for me, 1 for first approach with specialist 
 # 2) year; 3) month; 4) month week 
 
 # =============== Sidebar button action ===============
-# Fetch the file content
+# User's document download:
 url = "https://raw.githubusercontent.com/cesartadeub/kbdt/main/users_guide.pdf"
 response = requests.get(url)
 
@@ -44,26 +44,28 @@ else:
     st.sidebar.error("Failed to fetch the file.")
 
 # Add a text to the sidebar:
-add_sidebar_title = st.sidebar.write("*PARAMETERS*")
+add_sidebar_title = st.sidebar.write('''
+                                     # Parameters
+                                     # ''')
 # Add a select box:
 add_select_turbine = st.sidebar.selectbox(
     'Select a turbine',
-    ('2MW', '4.8MW', '10MW')
+    ('2MW', '4.8MW', '10MW'), disabled = False
 )
+st.sidebar.write('A',add_select_turbine,' wind turbine dataset selected')
+
 add_select_fault = st.sidebar.selectbox(
     'Select a fault',
     ('Encoder fixed', 'Encoder offset', 'Encoder gain',
      'Tachometer fixed', 'Tachometer offset')
 )
-add_select_wind = st.sidebar.selectbox(
-    'Select wind severity',
-    ('Under rated', 'Above rated')
-)
 
-# left_column, right_column = st.columns(2)
+add_select_range = st.sidebar.slider("Fault duration (s):", 0, 10, 5)
+st.sidebar.write(add_select_range,'s of fault duration')
 
-# with left_column: # Original turbine
-st.write('Original turbine')
+add_run = st.sidebar.button('Run analysis')
+
+# =============== Main window ===============
 # Plotting power curve
 WsxP = px.scatter(df, x="Wind_speed_mean", y="Power_sensor_mean",
 labels = {"Wind speed (m/s)": "Power generated (W)"})
@@ -105,12 +107,12 @@ st.plotly_chart(omega, on_select="rerun", use_container_width=True, color = [77,
 
 # with right_column: # Digital twin
 st.write('Virtual turbine')
-st.line_chart(df, x = 'Time', y = 'Wind_speed_mean', color = [255, 117, 0])
+st.line_chart(df, x = 'Time', y = 'Wind_speed_mean', x_label = 'Time', y_label = 'Wind speed', color = [255, 117, 0])
 # st.line_chart(df, x = 'Time', y = 'Power_sensor_mean', color = [255, 117, 0])
 # st.line_chart(df, x = 'Time', y = 'Pitch_angle_1_mean', color = [255, 117, 0])
 # st.line_chart(df, x = 'Time', y = 'Pitch_angle_2_mean', color = [255, 117, 0])
 # st.line_chart(df, x = 'Time', y = 'Pitch_angle_3_mean', color = [255, 117, 0])
 # st.line_chart(df, x = 'Time', y = 'Rotor_speed_sensor_mean', color = [255, 117, 0])
-# st.line_chart(df, x = 'Time', y = 'Generator_speed_sensor_mean', color = [255, 117, 0])
+# st.line_chart(df, x = 'Time', y = 'Generator_speed_sensor_mean', color = [255, 117, 0])]
 
 st.text('Turbine status')
