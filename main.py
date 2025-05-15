@@ -578,7 +578,7 @@ elif add_select_turbine == 'Data test':
     })
     ovl_perf = ovl_perf.reset_index(drop=True)
     st.dataframe(ovl_perf)
-    
+    st.write("""### User's insights and comments""")
     q03 = query(
     "Does the multiclass classification strategy reflect how fault identification and categorization are handled in wind farm operations? "
     "From a maintenance manager's perspective, does the proposed comparison between a rule-based system and machine learning stacking provide useful insights? "
