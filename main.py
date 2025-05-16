@@ -42,7 +42,7 @@ def likert(features):
 
     for feature in features:
         st.markdown(f"**{feature}**")
-        col1, col2 = st.columns([1, 2])  # Column 1: rating | Column 2: comment
+        col1, col2 = st.columns([1, 2]) # Column 1: rating | Column 2: comment
 
         with col1:
             selected = st.feedback("stars", key=feature)
@@ -599,7 +599,7 @@ elif add_select_turbine == 'Data test':
     "Please comment on the practicality and potential applicability of this approach in real-world monitoring systems.",
     key='q03'
 )
-    user_response['Q4'] = q03
+    user_response['Q3'] = q03
 else:
     st.text('To be released soon')
 
@@ -684,12 +684,18 @@ st.write("Review your open-ended responses:")
 st.dataframe(query_df, use_container_width=True)
 
 # Salvar tudo no mesmo CSV, com título separando
-csv_buffer = io.StringIO()
-csv_buffer.write("Likert scale scores\n")
-likert_df.to_csv(csv_buffer)
-csv_buffer.write("\nOpen-ended questions\n")
-query_df.to_csv(csv_buffer, index=False)
-csv_bytes = csv_buffer.getvalue().encode()
+csv_buffer = io.BytesIO()
+
+# Escrever texto separado manualmente em bytes com encoding utf-8-sig
+csv_buffer.write("Likert scale scores\n".encode('utf-8-sig'))
+likert_df.to_csv(csv_buffer, encoding='utf-8-sig')
+csv_buffer.write("\nOpen-ended questions\n".encode('utf-8-sig'))
+query_df.to_csv(csv_buffer, index=False, encoding='utf-8-sig')
+
+# Posição volta para o início para leitura posterior no download
+csv_buffer.seek(0)
+
+csv_bytes = csv_buffer.read()
 
 # Botão de download
 st.download_button(
