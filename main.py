@@ -23,7 +23,13 @@ def query(question, key=None):
 
 def likert(features):
     st.subheader("KBDT system evaluation - Likert Scale")
-    st.markdown("Please rate the following features using a 1 to 5 star scale, where:")
+    
+    st.markdown("""
+    For each item below, rate your level of agreement using the star scale on the left.
+    You can also add optional comments in the field next to each rating.
+    """)
+    
+    st.markdown("Use the scale below to guide your responses:")
     st.markdown("""
     - 1 = Strongly disagree  
     - 2 = Disagree  
@@ -32,19 +38,27 @@ def likert(features):
     - 5 = Strongly agree
     """)
     
-    sentiment_mapping = ["one", "two", "three", "four", "five"]
     results = {}
 
     for feature in features:
         st.markdown(f"**{feature}**")
-        selected = st.feedback("stars", key=feature)
-        if selected is not None:
-            st.markdown(f"You selected {sentiment_mapping[selected]} star(s).")
-            results[feature] = selected + 1  # Store score (1–5)
-        else:
-            results[feature] = None  # Score not selected
+        col1, col2 = st.columns([1, 2])  # Column 1: rating | Column 2: comment
+
+        with col1:
+            selected = st.feedback("stars", key=feature)
+        
+        with col2:
+            comment = st.text_input(
+                f"Comment on '{feature}'",
+                key=f"{feature}_comment",
+                label_visibility="collapsed"
+            )
+
+        score = selected + 1 if selected is not None else None
+        results[feature] = {"score": score, "comment": comment}
 
     return results
+
 
 # Store the results
 user_response = {}
@@ -635,47 +649,35 @@ if st.sidebar.button('Run analysis', key="run_analysis"): # A sidebar button to 
 # ==============================================
 import io
 features = [
-    "Ease of data selection",
-    "Ease of navigation and interface clarity",
-    "Clarity of diagnostic comments and visualizations",
-    "Usefulness of statistical summaries",
-    "System responsiveness/speed",
-    "Interpretability of anomaly patterns",
-    "Similarity of simulated failures to real-world conditions",
     "Effectiveness of classification output",
+    "Similarity of simulated failures to real-world conditions",
+    "Clarity of diagnostic comments and visualizations",
     "Relevance of thresholds and parameters for diagnostics",
-    "Flexibility to adapt or test new detection thresholds",
+    "Ease of navigation and interface clarity",
     "Usefulness for maintenance planning and prioritization",
-    "Level of automation versus manual input required",
-    "Alignment with field technician practices",
-    "Real-world applicability of detection logic",
-    "Clarity in system reasoning (rule-based + ML)",
     "Transparency of inference process",
-    "Ease of integrating new data/failure cases",
-    "Traceability of diagnostic decisions",
+    "System responsiveness/speed",
     "Overall usefulness of the prototype",
-    "Willingness to use the system in daily workflows"
-]
+    "Willingness to use the system in daily workflows"]
 likert_score = likert(features)
 import io
 from unidecode import unidecode
 
 # Coleta dos dados
-likert_df = pd.DataFrame({
-    'Feature': likert_score.keys(),
-    'Score': likert_score.values()
-})
+likert_df = pd.DataFrame([
+    {"Feature": feature, "Score": data["score"], "Comment": data["comment"]}
+    for feature, data in likert_score.items() ])
+
 likert_df = likert_df.reset_index(drop=True)
 likert_df.set_index('Feature', inplace=True)
 
 query_df = pd.DataFrame({
     'Question': user_response.keys(),
-    'Comment': user_response.values()
-})
+    'Comment': user_response.values() })
 query_df = query_df.reset_index(drop=True)
 
 # Exibir as duas tabelas no Streamlit
-st.write("Review your Likert responses:")
+st.write("Review your Likert scores:")
 st.dataframe(likert_df, use_container_width=True)
 
 st.write("Review your open-ended responses:")
@@ -683,9 +685,9 @@ st.dataframe(query_df, use_container_width=True)
 
 # Salvar tudo no mesmo CSV, com título separando
 csv_buffer = io.StringIO()
-csv_buffer.write("Likert Scale Responses\n")
+csv_buffer.write("Likert scale scores\n")
 likert_df.to_csv(csv_buffer)
-csv_buffer.write("\nOpen-ended Questions\n")
+csv_buffer.write("\nOpen-ended questions\n")
 query_df.to_csv(csv_buffer, index=False)
 csv_bytes = csv_buffer.getvalue().encode()
 
