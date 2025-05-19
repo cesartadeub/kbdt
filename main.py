@@ -195,7 +195,7 @@ st.title("""
          Wind turbine knowledge-based digital twin sensor fault diagnosis
          *_Cesar Tadeu NM Branco v0.25.05.3_*
          """)
-
+st.text(" Welcome to the KBDT prototype for conditional monitoring of wind turbines. In the window on the left, download the user guide by clicking the button and see what can be done with the prototype in question.")
 if add_select_turbine == '2.0MW (Kelmarsh)':
     #data_link = 'https://raw.githubusercontent.com/cesartadeub/kbdt/refs/heads/main/turbine_dataset/dataset_2100_Kelmarsh.csv'
     data_link = 'turbine_dataset/dataset_2100_Kelmarsh.csv'
@@ -238,6 +238,7 @@ elif add_select_turbine == '4.8MW (Benchmarking)':
     detector = SensorInferenceSystem(df, 0.01, 3, 95, dv)
     
 elif add_select_turbine == 'Data test':
+    st.write('''# Data analysis''')
     intro_text = (
         f'Here are results from a sensitivity analysis, considering constant wind speed with different intensities and in different regions of wind turbine operation.\n\n'
         'Therefore, choose a dataset below considering the wind speed and the turbine operating zone.'
@@ -276,11 +277,11 @@ elif add_select_turbine == 'Data test':
 
     st.write("""### User's insights and comments""")
     q01 = query(
-        "Do the statistical analyses and comments reflect realistic operational behavior of wind turbines? Do the simulated faults in encoders and tachometers resemble actual failure patterns observed in wind farms? Please elaborate on your assessment.", key='q01')
+        "Do the statistical analyses and comments reflect the real operational behavior of wind turbines? Do the simulated faults in encoders and tachometers resemble current failure patterns observed in wind farms? Please elaborate on your assessment.", key='q01')
     user_response['Q1'] = q01 # Calling query function for user feedback
 
     # 2) Binary analysis
-    st.write('''# Definition of detection thresholds''')
+    st.write('''# Threshold tuning for rule-based diagnosis''')
     st.markdown("""
     In this section, you can explore and validate the **fault detection system parameters** implemented as part of the **wind turbine digital twin**.
 
@@ -512,12 +513,10 @@ elif add_select_turbine == 'Data test':
     
     st.write("""### User's insights and comments""")
     q02 = query(
-    "Are the methods used to define thresholds in this analysis consistent with real-world practices in wind turbine monitoring? "
-    "In your opinion, could the same parameter selection logic be effectively implemented in an actual wind farm environment? "
-    "Please also comment on the usefulness of this approach for supporting decision-making in wind turbine maintenance.", key='q02')
+                "Do the threshold settings and binary alerts reflect realistic maintenance scenarios in wind turbines? Would these parameter configurations support accurate and timely fault identification in a real operational environment? Are the monitored variables (e.g., pitch angle, rotor speed) suitable for the type of failures being diagnosed? Please elaborate on your assessment.", key='q02')
     user_response['Q2'] = q02 # Calling query function for user feedback
 
-    st.write('''# Multiclass analysis''')
+    st.write('''# Single-shot multiclass prediction''')
     st.markdown("""
     After defining statistical thresholds in the binary analysis stage, we now move toward a **multiclass classification**, which better reflects the practical challenges faced by wind turbine maintenance managers.  
     In real-world operations, it's not enough to detect that a fault may exist — it is also necessary to classify **what type of fault is occurring** to support timely and accurate maintenance actions.
@@ -553,6 +552,7 @@ elif add_select_turbine == 'Data test':
     df1 = load_data('Train_data/set6.csv') # 5 m/s
     dfmla = pd.concat([df1,df2,df3,df4,df5,df6], axis=0)
     dfmla = dfmla.dropna()
+    
     # EXPERIMENTA VER A CM DO RBS COM O dfmla - Recall baixo pro rbs
     # EXPERIMENTA BALANCEAR OS DADOS
 
@@ -594,9 +594,7 @@ elif add_select_turbine == 'Data test':
     st.dataframe(ovl_perf)
     st.write("""### User's insights and comments""")
     q03 = query(
-    "Does the multiclass classification strategy reflect how fault identification and categorization are handled in wind farm operations? "
-    "From a maintenance manager's perspective, does the proposed comparison between a rule-based system and machine learning stacking provide useful insights? "
-    "Please comment on the practicality and potential applicability of this approach in real-world monitoring systems.",
+    "Does the system’s classification performance, as seen in the confusion matrices, provide an accurate and operationally useful representation of fault and healthy conditions? How do you interpret the trade-offs between detection rates and misclassifications across different fault types? In your experience, do the input variables and rule logic offer sufficient discriminatory power for real-time diagnostics? Would you recommend any changes in variable selection, rule thresholds, or system logic to improve fault differentiation and reduce diagnostic ambiguity?",
     key='q03'
 )
     user_response['Q3'] = q03
