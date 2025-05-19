@@ -150,7 +150,7 @@ st.set_page_config(
 # ==============================================
 # =============== Sidebar window ===============
 # ==============================================
-url = "https://raw.githubusercontent.com/cesartadeub/kbdt/main/users_guide.pdf"# User's document download:
+url = "https://raw.githubusercontent.com/cesartadeub/kbdt/main/guia_usuario.pdf"# User's document download:
 response = requests.get(url)
 
 if response.status_code == 200:
@@ -158,7 +158,7 @@ if response.status_code == 200:
         st.download_button(
             label="Download user's guide",
             data=response.content,
-            file_name="users_guide.pdf",
+            file_name="guia_usuario.pdf",
             mime="application/pdf"
         )
 else:
