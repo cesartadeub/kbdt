@@ -1,6 +1,9 @@
-from sklearn.metrics import confusion_matrix, precision_score, recall_score
 import pandas as pd
 import random
+
+from sklearn.metrics import confusion_matrix, precision_score, recall_score , classification_report
+from sklearn.model_selection import train_test_split
+from sklearn.utils.class_weight import compute_class_weight
 
 class SensorInferenceSystem:
     def __init__(self, df, tolerance, consecutive_points, Ng, dv):
@@ -215,12 +218,11 @@ class SensorInferenceSystem:
 ##############################################################
 ###################### Dataset de teste ######################
 ##############################################################
-from scipy.stats import linregress
 import numpy as np
 class SensorFaultDetector:
     def __init__(self, df):
         self.df = df.copy()
-        self.labels = [0] * len(df)
+        #self.labels = [0] * len(df)
     ####### Methods to classify faults #######
     def detect_constant_value(self, label_val, df, column, 
                               window_size=5,
@@ -228,7 +230,7 @@ class SensorFaultDetector:
                               consecutive_points=6):
         moving_average = df[column].rolling(window=window_size).mean()
         label = [0] * len(df)
-        consecutive_count = 0
+        consecutive_count = 0 
 
         for i in range(window_size, len(moving_average)):
             if i > window_size:
@@ -401,3 +403,61 @@ class SensorFaultDetector:
         recall = recall_score(y_test, y_pred, average='weighted')
         precision = precision_score(y_test, y_pred, average='weighted')
         return recall, precision
+    
+    def multiclass_classification(self, percentage_reduced, dt_train, dt_test):
+        columns_to_drop = ['Wind_speed_mean',
+                        'Wind_speed_min',
+                        'Wind_speed_max',
+                        'Wind_speed_std',
+                        'Torque_sensor_mean',
+                        'Torque_sensor_min',
+                        'Torque_sensor_max',
+                        'Torque_sensor_std',
+                        'Label']
+        
+        # Selecionando de forma randômica "percentage_reduced"% de cada classe
+        ds0 = dt_train[dt_train["Label"] == 0].sample(n=int(len(dt_train[dt_train["Label"] == 0]) * percentage_reduced), random_state=42)
+        ds1 = dt_train[dt_train["Label"] == 1].sample(n=int(len(dt_train[dt_train["Label"] == 1]) * percentage_reduced), random_state=42)
+        ds2 = dt_train[dt_train["Label"] == 2].sample(n=int(len(dt_train[dt_train["Label"] == 2]) * percentage_reduced), random_state=42)
+        ds3 = dt_train[dt_train["Label"] == 3].sample(n=int(len(dt_train[dt_train["Label"] == 3]) * percentage_reduced), random_state=42)
+        ds4 = dt_train[dt_train["Label"] == 4].sample(n=int(len(dt_train[dt_train["Label"] == 4]) * percentage_reduced), random_state=42)
+        ds5 = dt_train[dt_train["Label"] == 5].sample(n=int(len(dt_train[dt_train["Label"] == 5]) * percentage_reduced), random_state=42)
+        ds6 = dt_train[dt_train["Label"] == 6].sample(n=int(len(dt_train[dt_train["Label"] == 6]) * percentage_reduced), random_state=42)
+        ds7 = dt_train[dt_train["Label"] == 7].sample(n=int(len(dt_train[dt_train["Label"] == 7]) * percentage_reduced), random_state=42)
+        dt_train_reduced = pd.concat([ds0, ds1, ds2, ds3, ds4, ds5, ds6, ds7])
+
+        # Train/validation split
+        X_df = dt_train_reduced.drop(columns = columns_to_drop)
+        y_df = dt_train_reduced['Label']
+        X_train, X_val, y_train, y_val = train_test_split(X_df, y_df, test_size=0.2,
+            random_state=42, stratify=y_df) # Vai manter a proporção em cada classe
+        
+        # Test split regarding other labeled dataset
+        X_test = dt_test.drop(columns = columns_to_drop)
+        y_test = dt_test['Label']
+
+        classes = np.array(sorted(y_df.unique()))
+        class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=y_df)
+        class_weights = dict(zip(classes, class_weights))
+
+        from sklearn.neural_network import MLPClassifier
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.pipeline import make_pipeline
+        model_mlp = make_pipeline(StandardScaler(),
+                          MLPClassifier(hidden_layer_sizes=(10, 5,),
+                                        activation='relu',
+                                        solver='adam',
+                                        max_iter=500,
+                                        random_state=42)
+                                        )
+        model_mlp.fit(X_train, y_train)
+        train_acc = model_mlp.score(X_train, y_train)
+        val_acc = model_mlp.score(X_val, y_val)
+        y_pred_mlp = model_mlp.predict(X_test)
+        test_acc = model_mlp.score(X_test, y_test)
+        # Outputs
+        cr = classification_report(y_test, y_pred_mlp, digits=4, zero_division=False, output_dict=True)
+        cm = confusion_matrix(y_test, y_pred_mlp, normalize = "true",
+                              labels=sorted(y_test.unique()))
+        dt_test['y_pred'] = y_pred_mlp
+        return train_acc, val_acc, cr, test_acc, cm, dt_test

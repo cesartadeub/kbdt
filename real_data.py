@@ -9,12 +9,10 @@ import scipy.stats as stats
 from virtual_data import TurbineOptimizer
 
 class WECS:
-    def __init__(self, df_raw, add_select_turbine, add_select_fault, add_duration):
+    def __init__(self, df_raw, add_select_turbine):
         self.df = df_raw
         self.add_select_turbine = add_select_turbine
-        self.add_select_fault = add_select_fault
-        self.add_duration = add_duration
-        self.df_clean = None # Data cleaned
+        self.df_clean = None
 
     def plot_wind_speed(self):
         wind_speed = make_subplots(rows=1, cols=2,
@@ -29,7 +27,7 @@ class WECS:
                                           '<b>W<sub>s</sub>: </b>%{y:.1f} m/s<br>' +
                                           '<b>Time:</b> %{x:.0f} s')
 
-        wind_speed.update_layout(title=f"{self.add_select_turbine[:5]} wind speed profile",
+        wind_speed.update_layout(title=f"{self.add_select_turbine + ': ' if self.add_select_turbine == 'Training data' else self.add_select_turbine[:5]} wind speed profile",
                                  xaxis_title="Time (s)",
                                  yaxis_title="Wind speed (m/s)",
                                  xaxis2_title="Wind speed (m/s)",
@@ -81,10 +79,8 @@ class WECS:
 
         # 1. Raw data plot - First button
         pc.add_trace(go.Scatter(
-            x=self.df["Wind_speed_mean"],
-            y=self.df["Power_sensor_mean"],
-            mode="markers",
-            name="Power curve (raw data)",
+            x=self.df["Wind_speed_mean"], y=self.df["Power_sensor_mean"],
+            mode="markers", name="Power curve (raw data)",
             marker=dict(
                 color="rgba(77, 183, 211, 0.5)",
                 symbol='circle'
@@ -93,10 +89,8 @@ class WECS:
 
         # 2. Filtered data by cluster - Second button
         pc.add_trace(go.Scatter(
-            x=normal_data["Wind_speed_mean"],
-            y=normal_data["Power_sensor_mean"],
-            mode="markers",
-            name="Power curve (clustered)",
+            x=normal_data["Wind_speed_mean"], y=normal_data["Power_sensor_mean"],
+            mode="markers", name="Power curve (clustered)",
             marker=dict(
                 color=clusters[~df_clean['outlier']],
                 colorscale='viridis',
@@ -104,10 +98,7 @@ class WECS:
                 symbol='circle' ), visible=False ))
         # 3. Centroids
         pc.add_trace(go.Scatter(
-            x=xc,
-            y=yc,
-            mode="markers",
-            name="KMeans centroids",
+            x=xc, y=yc, mode="markers", name="KMeans centroids",
             marker=dict(color="black", size=10, line=dict(color='white', width=1)),
             visible=False))
 
@@ -145,7 +136,11 @@ class WECS:
             name="Outliers",
             marker=dict(color="red", size=8, symbol="x"),
             visible=False ))
+        st.write(f'''
+The illustration below shows the power curve of the {self.add_select_turbine[:5]} turbine, together with a representative model obtained through a clustering process. You can use the "Show samples" option to view only the raw data or select "Show optimized curve and clusters" to see the {nc} identified clusters and the curve fitted to them.
 
+This model represents the nominal behavior of the turbine and serves as a basis for detecting operational deviations. It is useful both in identifying anomalies related to aerodynamic performance and in calculating efficiency indicators, such as deviation from expected production and degradation of the power curve over time.
+                 ''')
         # 7. Layout interativo com botões
         pc.update_layout(
             title=f"{self.add_select_turbine[:5]} wind turbine power curve and optimized curve through clusters",
@@ -189,7 +184,7 @@ class WECS:
 
         mae_kpi, cp_kpi = st.columns(2)
         mae_kpi.metric("Mean absolute percentage error between twins", f'{100 * mae_curve_power:.1f}%', border=True)
-        cp_kpi.metric("Power curve correlation between real data and digital twin", f'{100 * rsquared_curve_power:.1f}%', border=True)
+        cp_kpi.metric("Power curve correlation between twins", f'{100 * rsquared_curve_power:.1f}%', border=True)
         self.df_clean = df_clean # Data cleaned stored
 
     def plot_pitch_angles(self):
@@ -204,7 +199,8 @@ class WECS:
         pit.add_trace(pit3.data[0], row=1, col=3)
         pit.update_traces(hovertemplate='<b>Angle:</b> %{y:.2f} deg<br>' +
                                         '<b>Time:</b> %{x:.0f} s')
-        pit.update_layout(title=f"{self.add_select_turbine[:5]} wind turbine pitch angle",
+        
+        pit.update_layout(title=f"{self.add_select_turbine + ': ' if self.add_select_turbine == 'Training data' else self.add_select_turbine[:5]} wind turbine pitch angle",
                         showlegend=False,
                         xaxis_title="Time (s)", xaxis2_title="Time (s)", xaxis3_title="Time (s)",
                         height=1000)
@@ -289,7 +285,8 @@ class WECS:
         omega.add_trace(om2.data[0], row=1, col=2)
         omega.update_traces(hovertemplate='<b>Speed:</b> %{y:.2f} rpm<br>' +
                                         '<b>Time:</b> %{x:.0f} s')
-        omega.update_layout(title=f"{self.add_select_turbine[:5]} wind turbine speeds",
+        
+        omega.update_layout(title=f"{self.add_select_turbine + ': ' if self.add_select_turbine == 'Training data' else self.add_select_turbine[:5]} wind turbine speeds",
                             showlegend=False,
                             xaxis_title="Time (s)",
                             xaxis2_title="Time (s)")
@@ -331,7 +328,7 @@ class WECS:
             hoverongaps=False
         )
         corr_matrix.update_layout(
-            title=f"{self.add_select_turbine[:5]} correlation matrix",
+            title=f"{self.add_select_turbine + ': ' if self.add_select_turbine == 'Training data' else self.add_select_turbine[:5]} correlation matrix",
             showlegend=False,
             yaxis=dict(showgrid=False)
         )
@@ -382,18 +379,60 @@ class WECS:
         self.plot_correlation_matrix()
 
 class WindTurbine2000(WECS):
-    def __init__(self, df, add_select_turbine, add_select_fault, add_duration):
-        super().__init__(df, add_select_turbine, add_select_fault, add_duration) # Inheritance property
+    def __init__(self, df, add_select_turbine):
+        super().__init__(df, add_select_turbine) # Inheritance property
         self.Pnom = 2.05
 
 class WindTurbine4800(WECS):
-    def __init__(self, df, add_select_turbine, add_select_fault, add_duration):
-        super().__init__(df, add_select_turbine, add_select_fault, add_duration) # Inheritance property
+    def __init__(self, df, add_select_turbine):
+        super().__init__(df, add_select_turbine) # Inheritance property
         self.Pnom = 4.8
 
+    def plot_multiclass_cm(self, cm, string_title):
+        ticklabels = [
+            'Fault-free',
+            'Blade 1 fixed',
+            'Blade 2 gain',
+            'Blade 3 trend',
+            'Rotor speed fixed',
+            'Rot/Gen speed gain',
+            'Actuator abrupt',
+            'Actuator slow']
+        
+        annotations_text = np.array([f"{val:.3f}" for val in cm.flatten()]).reshape(cm.shape)
+
+        fig = go.Figure(data=go.Heatmap(
+            z=cm, # Se 'cm' já é normalizado, 'z' já tem as proporções
+            x=ticklabels, y=ticklabels, 
+            text=annotations_text, # Use o texto formatado aqui
+            texttemplate="%{text}", # Isso garante que o 'text' seja exibido
+            hoverinfo="text", colorscale='viridis',
+            showscale=True, # Mostrar a barra lateral de escala de cor (opcional, pode ser False)
+            colorbar=dict(title='Proportion') # Título da barra de cores, se 'cm' for normalizado
+        ))
+
+        # Configura o layout do gráfico
+        fig.update_layout(
+            title=string_title, xaxis_title='Predicted label', yaxis_title='True label',
+            xaxis=dict(
+                tickmode='array',
+                tickvals=list(range(len(ticklabels))),
+                ticktext=ticklabels,
+                side='bottom' # Coloca os rótulos do eixo X (Predicted) em cima, como uma tabela
+            ),
+            yaxis=dict(
+                tickmode='array',
+                tickvals=list(range(len(ticklabels))),
+                ticktext=ticklabels,
+                autorange="reversed"
+            ),
+            height=600, width=650 )
+        
+        return fig
+    
 class WindTurbineTest(WECS):
-    def __init__(self, df, add_select_turbine, add_select_fault=None, add_duration=None):
-        super().__init__(df, add_select_turbine, add_select_fault, add_duration) # Inheritance property
+    def __init__(self, df, add_select_turbine):
+        super().__init__(df, add_select_turbine) # Inheritance property
         self.Pnom = None
     
     def fixed_tradeoff(self, detector, falha, column, window_sizes, thresholds, consecutive_points, fault_label):
@@ -509,51 +548,5 @@ class WindTurbineTest(WECS):
                         height=400,
                         annotations=[dict(x=j, y=i, text=str(labels[i][j]), showarrow=False)
                                     for i in range(2) for j in range(2)])
-        return fig
-
-    def plot_multiclass_cm(self, cm, string_title):
-        ticklabels = ['Fault-free',
-                    'Blade 1 fixed',
-                    'Blade 2 gain',
-                    'Blade 3 trend',
-                    'Rotor speed fixed',
-                    'Rotor speed gain']
-        
-        group_percentages = ["{0:.2%}".format(value) for value in cm.flatten() / np.sum(cm)]
-        annotations_text = [f"{perc}" for perc in group_percentages]
-        annotations_matrix = np.asarray(annotations_text).reshape(cm.shape)
-
-        fig = go.Figure(data=go.Heatmap(
-            z=cm,
-            x=ticklabels,
-            y=ticklabels,
-            text=annotations_matrix,
-            hoverinfo="text",
-            colorscale='Jet',
-            showscale=False, # Controla a barra lateral
-            colorbar=dict(title='Count') ))
-
-        # Cria anotações para cada célula
-        annotations = []
-        for i in range(cm.shape[0]):
-            for j in range(cm.shape[1]):
-                annotations.append(
-                    dict(
-                        x=ticklabels[j],
-                        y=ticklabels[i],
-                        text=annotations_matrix[i][j],
-                        showarrow=False,
-                        font=dict(color="white")  # Opcional: para garantir legibilidade
-                    ) 
-                )
-
-        fig.update_layout(
-            title=string_title,
-            xaxis_title='Predicted label',
-            yaxis_title='True label',
-            xaxis=dict(tickmode='array', tickvals=list(range(len(ticklabels))), ticktext=ticklabels),
-            yaxis=dict(tickmode='array', tickvals=list(range(len(ticklabels))), ticktext=ticklabels),
-            annotations=annotations)
-        
         return fig
 # May have a Sensor subclass referring to the turbine class - pitch_controller.py

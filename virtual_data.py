@@ -2,8 +2,9 @@ import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
 from scipy.optimize import curve_fit
+import plotly.graph_objects as go
 
-class TurbineOptimizer:
+class TurbineOptimizer: # TROCAR PARA TurbineServices
     def __init__(self, df, n_clusters, Pnom):
         self.df = df
         self.n_clusters = n_clusters
@@ -34,8 +35,7 @@ class TurbineOptimizer:
         popt, _ = curve_fit(
             lambda xc, gain, shift, bias: self.objective_function(xc, gain, shift, bias, function),
             xc, yc, bounds = ([gain_min, shift_min, bias_min],
-                            [gain_max, shift_max, bias_max])
-        )
+                            [gain_max, shift_max, bias_max]) )
         return popt
     
     def compute_control_limits(self, df, popt, clusters, n_sigma=3):
@@ -120,3 +120,85 @@ class TurbineOptimizer:
         mae = np.mean(np.abs(Xc['Power_sensor_mean'] - y_pred))
         # Faltou o MSE da curva de ajuste com os centróides
         return r2, mae
+    ############# METRICS #############
+    def kpi_metrics(self, window):
+        # Energy production
+        total_energy = window['Power_sensor_mean'].sum() * (1 / 3600)
+        full_load_hours = total_energy / self.Pnom
+        capacity_factor = total_energy / (self.Pnom * (len(window) / 3600))
+        # Reliability
+        failure_transitions = ((window['Label'] != 0).astype(int).diff() == 1).sum()
+        MTBF = len(window) / failure_transitions if failure_transitions != 0 else np.nan
+        return total_energy, full_load_hours, capacity_factor, MTBF
+    
+    def pid_correction(self, initial_fault_value, reference_signal):
+        
+        corrected_signal = [initial_fault_value]
+        current_output = initial_fault_value
+        
+        import controller as PID
+        # Initialize the PI controller
+        pid = PID.PID(Kp=0.2, Ki=0.05, Kd=0.0)
+
+        # Reset internal state of the PID controller
+        pid.setIntegrator(0)
+        pid.setDerivator(0)
+
+        # PI control loop starting right after the fault detection
+        for i in range(1, len(reference_signal)):
+            pid.setPoint(reference_signal[i])                                   # Update the setpoint to match blade 2
+            control_action = pid.update(current_output)                         # Compute correction based on current output
+            current_output += control_action                                    # Apply correction
+            current_output_dirty = current_output + np.random.normal(0, 0.05)    # Add Gaussian noise (mean=0, std=0.05)
+            corrected_signal.append(current_output_dirty)                       # Store corrected value
+        return corrected_signal
+
+    def ftc_plots(self, fault_injected_idx, fault_detected_idx,
+                fault_signal, corrected_signal, figure_title):
+
+        ctrl_pitch = go.Figure()
+
+        # Original signal
+        ctrl_pitch.add_trace(go.Scatter(
+            x=fault_signal.index,
+            y=fault_signal,
+            mode="markers",
+            name="Original signal",
+            marker=dict(color="blue", symbol="cross")
+        ))
+
+        # Linha vertical - Fault injected
+        ctrl_pitch.add_vline(
+            x=fault_injected_idx,
+            line=dict(color="red", width=2, dash="dash"),
+            annotation_text="Fault injected",
+            annotation_position="top left",
+            annotation_font_color="red"
+        )
+
+        # Linha vertical - Fault detected
+        ctrl_pitch.add_vline(
+            x=fault_detected_idx,
+            line=dict(color="yellow", width=2, dash="dash"),
+            annotation_text="Fault detected",
+            annotation_position="top right",
+            annotation_font_color="goldenrod"
+        )
+
+        # ✅ Corrigido: alinha o tempo com a parte da curva corrigida
+        corrected_index = fault_signal.loc[fault_detected_idx:].index[:len(corrected_signal)]
+        ctrl_pitch.add_trace(go.Scatter(
+            x=corrected_index,
+            y=corrected_signal,
+            mode="lines",
+            name="Corrected signal",
+            line=dict(color="green", dash="dot")
+        ))
+
+        ctrl_pitch.update_layout(
+            title=figure_title,
+            xaxis_title="Time (s)",
+            yaxis_title=f"{figure_title[0:9]}",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+
+        return ctrl_pitch
