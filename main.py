@@ -58,9 +58,10 @@ def likert(features):
 
     return results
 
-
 # Store the results
-user_response = {}
+# user_response = {}
+if 'user_response' not in st.session_state:
+    st.session_state.user_response = {}
 
 # ==============================================
 # ============ Page configurations =============
@@ -84,7 +85,7 @@ response = requests.get(url)
 if response.status_code == 200:
     with st.sidebar:
         st.download_button(
-            label="Download user's guide",
+            label="Download user guide",
             data=response.content,
             file_name="guia_usuario.pdf",
             mime="application/pdf"
@@ -174,8 +175,19 @@ if add_select_turbine == 'Training data':
 
     st.write("""### User's insights and comments""")
     q01 = query(
-        "How do you evaluate the usefulness of the statistical analyses provided in supporting diagnostic decision-making? In your opinion, do the profiles in the synthetic datasets reasonably reflect the behavior of turbine variables observed in real wind farms? Given the lack of real datasets with labeled faults, to what extent do you believe these synthetic datasets are suitable for training fault classification systems?", key='q01')
-    user_response['Q1'] = q01 # Calling query function for user feedback
+        "How do you evaluate the usefulness of the statistical analyses provided in supporting diagnostic decision-making?",
+        key='q01')
+    st.session_state.user_response['Q1'] = q01 # Calling query function for user feedback
+
+    q02 = query(
+        "In your opinion, do the profiles in the synthetic datasets reasonably reflect the behavior of turbine variables observed in real wind farms?",
+        key='q02')
+    st.session_state.user_response['Q2'] = q02 # Calling query function for user feedback
+
+    q03 = query(
+        "Given the lack of real datasets with labeled faults, to what extent do you believe these synthetic datasets are suitable for training fault classification systems?",
+        key='q03')
+    st.session_state.user_response['Q3'] = q03 # Calling query function for user feedback
 
     st.write('''## Fault analysis window''')
     st.markdown("""
@@ -565,9 +577,15 @@ if add_select_turbine == 'Training data':
     col4.metric("MTBF (s)", f"{mtbf:.1f}" if not np.isnan(mtbf) else "N/A", border=True)
   
     st.write("""### User's insights and comments""")
-    q02 = query(
-                "To what extent do the fault scenarios modeled in this prototype represent realistic failure behaviors in wind turbines? Are the selected variables and performance indicators adequate to support future generalization and practical application of the digital twin diagnosis system? Please share your first impressions on this initial stage of the prototype and potencial to support the development of a reliable digital twin knowledge base.", key='q02')
-    user_response['Q2'] = q02 # Calling query function for user feedback
+    q04 = query(
+                "To what extent do the fault scenarios modeled in this prototype represent realistic failure behaviors in wind turbines?",
+                key='q04')
+    st.session_state.user_response['Q4'] = q04 # Calling query function for user feedback
+
+    q05 = query(
+                "Are the selected variables and performance indicators adequate to support future generalization and practical application of the digital twin diagnosis system? Please share your first impressions on this initial stage of the prototype and potencial to support the development of a reliable digital twin knowledge base.",
+                key='q05')
+    st.session_state.user_response['Q5'] = q05 # Calling query function for user feedback
 
     ################################# DRIVETRAIN #################################
     st.write("""# 2) Drivetrain""")
@@ -830,11 +848,21 @@ elif add_select_turbine == '4.8MW (OpenFAST)':
         col3.metric("Settling time", f"{settling_time}s" if settling_time is not None else "Not settled")
     
     st.write("""### User's insights and comments""")
-    q03 = query(
-    """Does the system’s classification performance, as seen in the confusion matrices, KPIs, power curve, etc.., provide an accurate and operationally useful representation of fault and healthy conditions? In your experience, do the input variables and inference offer sufficient discriminatory power for real diagnostics? Would you recommend any improvements in the analysis above?""",
-    key='q03' )
-    user_response['Q3'] = q03
-    
+    q06 = query(
+    """Does the system's classification performance, as seen in the confusion matrices, KPIs, power curve, etc.., provide an accurate and operationally useful representation of fault and healthy conditions?""",
+    key='q06' )
+    st.session_state.user_response['Q6'] = q06
+
+    q07 = query(
+    """In your experience, do the input variables and inference offer sufficient discriminatory power for real diagnostics?""",
+    key='q07' )
+    st.session_state.user_response['Q7'] = q07
+
+    q08 = query(
+    """Would you recommend any improvements in the analysis above?""",
+    key='q08' )
+    st.session_state.user_response['Q8'] = q08
+
 elif add_select_turbine == '2.0MW (Kelmarsh)':
 
     data_link = 'Testing_data/dataset_2100_Kelmarsh.csv'
@@ -886,8 +914,8 @@ likert_df = likert_df.reset_index(drop=True)
 likert_df.set_index('Feature', inplace=True)
 
 query_df = pd.DataFrame({
-    'Question': user_response.keys(),
-    'Comment': user_response.values() })
+    'Question': st.session_state.user_response.keys(),
+    'Comment': st.session_state.user_response.values() })
 query_df = query_df.reset_index(drop=True)
 
 # Exibir as duas tabelas no Streamlit
