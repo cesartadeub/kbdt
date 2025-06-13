@@ -115,7 +115,7 @@ add_select_turbine = st.sidebar.radio(
 # ==============================================
 st.title("""
          Wind turbine knowledge-based digital twin fault diagnosis
-         *_Cesar Tadeu NM Branco v0.25.06.2_*
+         *_Cesar Tadeu NM Branco v1.25.06.2_*
          """)
 st.text(" Welcome to the KBDT prototype for conditional monitoring of wind turbines. In the window on the left, download the user guide by clicking the button and see what can be done with the prototype in question.")
 
